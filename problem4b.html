@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Problem 4b</title>
+		<script type="text/javascript" src="../d3.js"></script>
+		<style type="text/css">
+			#tooltip {
+				position: absolute;
+				width: 200px;
+				height: auto;
+				padding: 10px;
+				background-color: white;
+				-webkit-border-radius: 10px;
+				-moz-border-radius: 10px;
+				border-radius: 10px;
+				-webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+				-moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+				box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+				pointer-events: none;
+			}
+			
+			#tooltip.hidden {
+				display: none;
+			}
+			
+			#tooltip p {
+				margin: 0;
+				font-family: sans-serif;
+				font-size: 16px;
+				line-height: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="tooltip" class="hidden">
+			<p><strong>Name</strong></p>
+			<p><span id="value">100</span></p>
+		</div>
+		<script type="text/javascript">
+
+			//Width and height
+			var w = 500;
+			var h = 300;
+			var padding = 40;
+			
+			//Dynamic, random dataset
+			var dataset;
+
+			var labels = ["Death", "Birth", "Mid Research", "Nobel Prize"];
+
+
+			//Create SVG element
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("width", w)
+						.attr("height", h);
+
+			var rowConverter = function(d) {
+				return {
+					Name: d.name,
+					Field: d.field,
+					Birth: parseInt(d.year_birth),
+					Prize: parseInt(d.year_prize),
+					Research: parseInt(d.year_research_mid),
+					Death: parseInt(d.year_death),
+					Theory: parseInt(d.TheoryOrTheoryAndEmpirical),
+					Age: parseInt(d.age_highdegree)
+				};
+			}
+
+			//Birth Data SVG element
+			var birth = d3.select("svg")
+						.append("g")
+						.attr("id", "birth");
+
+			//Prize Data SVG element
+			var prize = d3.select("svg")
+						.append("g")
+						.attr("id", "prize");
+
+			//Res Data SVG element
+			var res = d3.select("svg")
+						.append("g")
+						.attr("id", "res");
+
+			//Death Data SVG element
+			var death = d3.select("svg")
+						.append("g")
+						.attr("id", "death");
+
+			var lineGenerator = d3.line();
+
+
+			d3.csv("Jones_Weinberg_2011_PNAS.csv", rowConverter, function(data) {
+
+				dataset = data;
+
+				//Create scale functions
+				var xScale = d3.scaleLinear()
+									 .domain([d3.min(dataset, function(d) { return d.Birth; }), 
+									 	d3.max(dataset, function(d) { return d.Death; })])
+									 .range([padding, w - padding * 2]);
+
+				var yScale = d3.scaleLinear()
+									 .domain([0, 5])
+									 .range([h - padding, padding]);
+
+				//Define X axis
+				var xAxis = d3.axisBottom()
+								  .scale(xScale)
+								  .ticks(5)
+								  .tickFormat(d3.format("d"));
+
+				//Define Y axis
+				/*var yAxis = d3.axisLeft()
+								  .scale(yScale)
+								  .ticks(4);*/
+
+
+				//Create circles
+				birth.selectAll("circle")
+				   .data(dataset)
+				   .enter()
+				   .append("circle")
+				   .attr("cx", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+				   			return xScale(d.Birth) + padding;
+				   })
+				   .attr("cy", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+					   		return yScale(1);
+				   })
+				   .attr("r", 2);
+
+				res.selectAll("circle")
+				   .data(dataset)
+				   .enter()
+				   .append("circle")
+				   .attr("cx", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+				   			return xScale(d.Research) + padding;
+				   })
+				   .attr("cy", function(d) {
+				   		if(d.Field == "Chemistry")
+					   		return yScale(2);
+				   })
+				   .attr("r", 2);
+
+
+				prize.selectAll("circle")
+				   .data(dataset)
+				   .enter()
+				   .append("circle")
+				   .attr("cx", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+				   			return xScale(d.Prize) + padding;
+				   })
+				   .attr("cy", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+					   		return yScale(3);
+				   })
+				   .attr("r", 2); 
+
+				death.selectAll("circle")
+				   .data(dataset)
+				   .enter()
+				   .append("circle")
+				   .attr("cx", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+				   			return xScale(d.Death) + padding;
+				   })
+				   .attr("cy", function(d) {
+				   		if(d.Field == "Chemistry" && d.Birth < 1900)
+					   		return yScale(0);
+				   })
+				   .attr("r", 2);
+
+				svg.selectAll("path")
+					.data(dataset)
+					.enter()
+					.append("path")
+					.attr("d", 
+						(function(d) {
+							if (d.Field == "Chemistry" && d.Birth < 1900){
+								return lineGenerator([
+									[xScale(d.Birth) + padding, yScale(1)], 
+									[xScale(d.Research) + padding, yScale(2)],
+									[xScale(d.Prize) + padding, yScale(3)],
+									[xScale(d.Death) + padding, yScale(0)]]);
+							}
+						}))
+					.attr("stroke-width", 1)
+					.attr("stroke", "red")
+					.attr("fill", "none")
+					.on("mouseover", function(d) {
+						var xPosition = xScale(d.Research) + padding;
+						var yPosition = yScale(2);
+
+						//Update the tooltip position and value
+						d3.select("#tooltip")
+							.style("left", xPosition + "px")
+							.style("top", yPosition + "px")						
+							.select("#value")
+							.text(d.Name);
+				   
+						//Show the tooltip
+						d3.select("#tooltip").classed("hidden", false);
+
+						svg.append("text")
+							.attr("id", "tooltip")
+							.attr("x", xPosition)
+							.attr("y", yPosition);
+
+						d3.select(this)
+							.attr("stroke", "orange")
+							.attr("stroke-width", 5);
+					})
+					.on("mouseout", function() {
+						d3.select("#tooltip").classed("hidden", true);
+						d3.select(this)
+							.attr("stroke", "red")
+							.attr("stroke-width", 1)
+							.attr("fill", "none");
+					});
+
+				svg.selectAll("text")
+					.data(labels)
+					.enter()
+					.append("text")
+					.text(function(d) {
+						return d;
+					})
+					.attr("x", padding / 2)
+					.attr("y", function(d, i) {
+						return yScale(i);
+					});
+
+
+				
+				//Create X axis
+				svg.append("g")
+					.attr("class", "x axis")
+					.attr("transform", "translate(" + padding + "," + (h - padding) + ")")
+					.call(xAxis);
+
+				svg.append("text")
+					.attr("id", "title")
+					.text("Lifeline of Novel Prize Chemists (Born before 1900)")
+					.attr("x", w / 2)
+					.attr("y", 75)
+					.attr("text-anchor", "middle");
+
+				svg.append("text")
+					.attr("id", "title")
+					.text("(Hover over the lifelines to see the name of the chemist.)")
+					.attr("x", w / 2)
+					.attr("y", 90)
+					.attr("text-anchor", "middle")
+					.attr("font-size", 12);
+
+				svg.append("text")
+					.attr("id", "title")
+					.text("Year")
+					.attr("x", w / 2)
+					.attr("y", h - 10)
+					.attr("text-anchor", "middle");
+				
+				/*//Create Y axis
+				svg.append("g")
+					.attr("class", "y axis")
+					.attr("transform", "translate(" + padding + ",0)")
+					.call(yAxis);*/
+			});
+
+
+
+		</script>
+	</body>
+</html>

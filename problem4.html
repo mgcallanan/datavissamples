@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>D3: Cancer Survival Plots in Tufte's Style</title>
+	<! EDIT THIS PATH to where you put d3-book-2.0.3/d3.js >
+		<script type="text/javascript" src="d3.js"></script> 
+		<style type="text/css">
+			/* No style rules here yet */		
+		</style>
+	</head>
+	<body> 
+		
+	       <script type="text/javascript">
+
+	       	var h = 2050;
+	       	var w = 2000;
+	       	var padding = 25;
+	       	var typePadding = 20;
+	       	var spaceBtwn = 4;
+
+	      // set up svg area in body of html
+	       var svg = d3.select("body")
+					.append("svg")
+					.attr("height", h)
+	       			.attr("width", w);	
+			
+			var dataset, years, diffs, totalDiff, diff, scale, start, diff1, scale1, diff2, scale2, yAxis, initial;
+
+	               // function to create SVG path statement from a list of points
+		       var lineGenerator = d3.line();
+			var rowConverter = function(d) {
+					return {
+						Type: d.Type,
+						t5yr: parseFloat(d.t5yr),
+						t10yr: parseFloat(d.t10yr),
+						t15yr: parseFloat(d.t15yr),
+						t20yr: parseFloat(d.t20yr),
+						y: yAxis 
+					};
+				}
+
+			
+		       // EDIT PATH this path as necessary 
+			d3.csv("cancer_survival.csv", rowConverter, function(data){
+				
+			         dataset = data;
+
+			         dataset.sort(function(x, y) {
+			         	return d3.descending(x.t5yr, y.t5yr);
+			         });
+
+
+			         years = [5, 10, 15, 20];
+
+			         totalDiff = 0;
+
+
+				 var t = svg.selectAll("text")
+				 			.data(dataset)
+				 			.enter();
+
+				 diffs = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+				 initial = (h - ((h - padding) / 100)*dataset[0].t5yr);
+
+				 var makeDiffs = function(d) {
+				 	for (var i = 0;i < d.length; i++) {
+				 		var temp = Math.round(d[i].t5yr - d[i].t20yr)
+				 		diffs[i] = (temp + spaceBtwn) * ((h - initial) / ((h - initial) / 100));
+				 		totalDiff += (temp + spaceBtwn) * ((h - initial) / ((h - initial) / 100));
+				 	}
+				 }
+
+
+				 makeDiffs(dataset);
+
+
+				 var yScale;
+				 var count = 0;
+
+				 /*var yScale = d3.scaleLinear()
+				 				.domain([0, totalDiff])
+				 				.range([h -padding, padding]);*/
+
+
+			 	for (var i = 0; i < diffs.length; i++) {
+			 		yScale = diffs[i] * (h - initial - (spaceBtwn * dataset.length)) / totalDiff;
+			 		count += yScale;
+			 		diffs[i] = yScale;
+			 		dataset[i].y = yScale;
+			 	}
+
+
+
+			 	count = 0;
+
+				 svg.selectAll("text")
+						.data(years)
+						.enter()
+						.append("text")
+						.text(function(d, i) {
+							return years[i] + " years";
+						})
+						.attr("x", function(d, i) {
+							return 250 + (150 * i);
+						})
+						.attr("y", padding / 1.25)
+						.attr("text-anchor", "middle")
+						.attr("font-size", "20px")
+						.attr("font-weight", "bold");
+
+				var y = (h - ((h - initial) / 100)*dataset[0].t5yr);
+				 				 
+				 svg.selectAll("path")	
+						.data(dataset)
+						.enter()
+						.append("path")				
+						.attr('d',
+							(function(d, i) 
+								{diff = ((h - padding) / ((h - padding) / 100)) * Math.round(d.t5yr - d.t20yr);
+									scale = diff * (h - padding) / totalDiff;
+
+									start = y;
+
+									diff1 = ((h - padding) / ((h - padding) / 100)) * Math.round(d.t5yr - d.t10yr);
+									scale1 = diff1 * (h - padding) / totalDiff;
+
+									diff2 = ((h - padding) / ((h - padding) / 100)) * Math.round(d.t5yr - d.t15yr);
+									scale2 = diff2 * (h - padding) / totalDiff;
+
+									y += d.y;
+
+
+									return lineGenerator ([
+											[250, start],
+											[400, start + scale1],
+											[550, start + scale2],
+											[700, start + scale]]);}))
+						.attr("stroke-width", 5)
+						.attr("stroke",function(d) 
+							{return ("rgba(" + parseInt(255-2*d.t5yr)  + "," 
+										+parseInt(2*d.t20yr) +"," +  parseInt(2*d.t5yr) + " ,0.5)")} )
+	                                        .attr("fill", "none");                         
+	             y = (h - ((h - initial) / 100)*dataset[0].t5yr);
+
+	             t.append("text")
+	             	.text(function(d) {
+	             		return d.t5yr;
+	             	})
+	             	.attr("x", 250)
+	             	.attr("y", function(d) {
+	             		start = y;
+
+	             		y += d.y;
+
+	             		return start;
+	             	})
+	             	.attr("text-anchor", "middle");
+
+	            y = (h - ((h - initial) / 100)*dataset[0].t5yr)
+
+	            t.append("text")
+	             	.text(function(d) {
+	             		return d.t10yr;
+	             	})
+	             	.attr("x", 400)
+	             	.attr("y", function(d) {
+	             		start = y;
+
+						diff1 = ((h - padding) / ((h - padding) / 100)) * Math.round(d.t5yr - d.t10yr);
+						scale1 = diff1 * (h - padding) / totalDiff;
+
+						y += d.y;
+
+						return start + scale1;
+	             	})
+	             	.attr("text-anchor", "middle");
+
+	             y = (h - ((h - initial) / 100)*dataset[0].t5yr);
+
+	            t.append("text")
+	             	.text(function(d) {
+	             		return d.t15yr;
+	             	})
+	             	.attr("x", 550)
+	             	.attr("y", function(d) {
+
+	             		start = y;
+
+						diff2 = ((h - padding) / ((h - padding) / 100)) * Math.round(d.t5yr - d.t15yr);
+						scale2 = diff2 * (h - padding) / totalDiff;
+
+						y += d.y;
+
+						return start + scale2;
+	             	})
+	             	.attr("text-anchor", "middle");
+
+	            y = (h - ((h - initial) / 100)*dataset[0].t5yr)
+
+	            t.append("text")
+	             	.text(function(d) {
+	             		return d.t20yr;
+	             	})
+	             	.attr("x", 700)
+	             	.attr("y", function(d) {
+     					diff = ((h - padding) / ((h - padding) / 100)) * Math.round(d.t5yr - d.t20yr);
+						scale = diff * (h - padding) / totalDiff;
+
+						count += scale;
+
+						start = y;
+
+						y+= d.y;
+
+						return start + scale;
+	             	})
+	             	.attr("text-anchor", "middle");
+
+	             y = (h - ((h - initial) / 100)*dataset[0].t5yr);
+
+				 t.append("text")
+						.text(function(d) {return d.Type})
+						.attr("font-size","20px")
+						.attr("fill","black")
+						.attr("stroke","black")
+						.attr("x",10)
+	                    .attr("font-family", "sans-serif")
+					    .attr("y",function(d) {
+					    	start = y;
+
+					    	y += d.y;
+
+					    	return start;
+					    }); 	
+	 			
+				
+				});
+
+				
+		</script>
+	</svg>
+
+        </body>
+	     
+		
+		
+		
+	
+					
+
+			
+					
+				
+
+
+ 				  
+
+			
+			
+	
+</html>
